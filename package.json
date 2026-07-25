@@ -1,0 +1,20 @@
+{
+  "name": "pps-maroc.ia-v2",
+  "version": "1.0.0",
+  "description": "Plateforme d'orchestration de PPS-CognitiveAI-Core et PPS-KnowledgeBase.",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "check": "node --check src/app.js",
+    "test:llm": "node tests/LLMService.integration.test.js"
+  },
+  "keywords": [
+    "cognitive-ai",
+    "knowledge-base",
+    "orchestration",
+    "pps-maroc"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}
