@@ -41,6 +41,17 @@ class CognitiveAIAdapter {
     return context;
   }
 
+  generateClarification(context) {
+    if (!context) {
+      throw new Error(
+        "CognitiveAIAdapter.generateClarification requires CognitiveContext."
+      );
+    }
+
+    return this.cognitivePipeline
+      .generateClarification(context);
+  }
+
   complete(context, knowledgePackage) {
     if (!context) {
       throw new Error(

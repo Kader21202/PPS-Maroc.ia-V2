@@ -44,6 +44,32 @@ class ChatService {
         question
       });
 
+    if (
+      cognitiveContext.userIntent &&
+      cognitiveContext.userIntent
+        .clarificationRequired === true
+    ) {
+      const finalAnswer =
+        await this.cognitiveAI
+          .generateClarification(
+            cognitiveContext
+          );
+
+      if (this.guardrails) {
+        this.guardrails
+          .validateOutput(finalAnswer);
+      }
+
+      return {
+        question,
+        answer: finalAnswer.answer,
+        finalAnswer,
+        verificationReport: null,
+        knowledgePackage: null,
+        cognitiveContext
+      };
+    }
+
     const retrievalStrategy =
       cognitiveContext.plan?.retrievalStrategy ||
       cognitiveContext.plan?.reasoningStrategy ||

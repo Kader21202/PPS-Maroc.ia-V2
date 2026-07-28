@@ -17,6 +17,14 @@ class FakePipeline {
       context
     };
   }
+
+  generateClarification(context) {
+    return {
+      finalAnswer:
+        "Pouvez-vous préciser votre demande ?",
+      context
+    };
+  }
 }
 
 class FakeContextBuilder {
@@ -56,6 +64,21 @@ const answer =
 assert.strictEqual(
   answer.finalAnswer,
   "OK"
+);
+
+const clarificationAnswer =
+  adapter.generateClarification(
+    context
+  );
+
+assert.strictEqual(
+  clarificationAnswer.finalAnswer,
+  "Pouvez-vous préciser votre demande ?"
+);
+
+assert.strictEqual(
+  clarificationAnswer.context,
+  context
 );
 
 console.log(
