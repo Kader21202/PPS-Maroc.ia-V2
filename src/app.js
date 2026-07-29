@@ -3,20 +3,16 @@
 const path = require("path");
 
 const {
+  RepositoryService,
+  KnowledgeFragmentFactory,
   KnowledgeBaseBuilder
-} = require(
-  "../../PPS-KnowledgeBase/src/builders/KnowledgeBaseBuilder"
-);
+} = require("../../PPS-KnowledgeBase");
 
 const {
   CognitiveAIBuilder
 } = require(
   "../../PPS-CognitiveAI-Core/src"
 );
-
-const {
-  FragmentLoader
-} = require("./loaders/FragmentLoader");
 
 const {
   KnowledgeBaseAdapter
@@ -47,18 +43,31 @@ const {
 } = require("./services/PlatformService");
 
 function startApplication() {
-  const documentsPath = path.join(
+  const knowledgePath = path.join(
     __dirname,
     "..",
-    "data",
-    "pps_knowledge"
+    "..",
+    "PPS-KnowledgeBase",
+    "knowledge"
   );
 
-  const fragmentLoader = new FragmentLoader({
-    documentsPath
-  });
+  const repositoryService =
+    new RepositoryService();
 
-  const fragments = fragmentLoader.load();
+  const documents =
+    repositoryService.loadKnowledgeBase(
+      knowledgePath
+    );
+
+  const knowledgeFragmentFactory =
+    new KnowledgeFragmentFactory();
+
+  const fragments =
+    documents.flatMap(document =>
+      knowledgeFragmentFactory.createFromDocument(
+        document
+      )
+    );
 
   const knowledgeBaseBuilder =
     new KnowledgeBaseBuilder();
@@ -112,9 +121,13 @@ function startApplication() {
   return {
     name: "PPS-Maroc.ia V2",
     status: "initialized",
+
+    documentsCount: documents.length,
     fragmentsCount: fragments.length,
 
+    documents,
     fragments,
+
     knowledgeBase,
     knowledgeBaseAdapter,
 
@@ -136,6 +149,8 @@ if (require.main === module) {
   console.log({
     name: application.name,
     status: application.status,
+    documentsCount:
+      application.documentsCount,
     fragmentsCount:
       application.fragmentsCount
   });

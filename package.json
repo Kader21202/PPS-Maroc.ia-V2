@@ -4,7 +4,7 @@
   "description": "Plateforme d'orchestration de PPS-CognitiveAI-Core et PPS-KnowledgeBase.",
   "main": "src/app.js",
   "scripts": {
-    "start": "node src/app.js",
+    "start": "node src/server.js",
     "check": "node --check src/app.js",
     "test:llm": "node tests/LLMService.integration.test.js"
   },
