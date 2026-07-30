@@ -42,7 +42,10 @@ const {
   PlatformService
 } = require("./services/PlatformService");
 
-function startApplication() {
+function startApplication({
+  cognitiveCore: injectedCognitiveCore = null,
+  llmProvider: injectedLLMProvider = null
+} = {}) {
   const knowledgePath = path.join(
     __dirname,
     "..",
@@ -84,6 +87,7 @@ function startApplication() {
     });
 
   const cognitiveCore =
+    injectedCognitiveCore ||
     new CognitiveAIBuilder().build();
 
   const cognitiveAIAdapter =
@@ -99,6 +103,7 @@ function startApplication() {
     new Guardrails();
 
   const mistralProvider =
+    injectedLLMProvider ||
     new MistralProvider();
 
   const llmService =
@@ -159,3 +164,4 @@ if (require.main === module) {
 module.exports = {
   startApplication
 };
+
