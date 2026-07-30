@@ -74,7 +74,20 @@ assert.strictEqual(
   fakeCognitiveCore.cognitiveContextBuilder
 );
 
+assert.throws(
+  () => startApplication(),
+  /requires a cognitiveCore/
+);
+
+assert.throws(
+  () => startApplication({
+    cognitiveCore: fakeCognitiveCore
+  }),
+  /requires an llmProvider/
+);
+
 console.log(
   "✅ Application composition injection validée"
 );
+
 

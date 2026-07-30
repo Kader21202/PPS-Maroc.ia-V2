@@ -9,12 +9,6 @@ const {
 } = require("../../PPS-KnowledgeBase");
 
 const {
-  CognitiveCoreFactory
-} = require(
-  "./bootstrap/CognitiveCoreFactory"
-);
-
-const {
   KnowledgeBaseAdapter
 } = require("./adapters/KnowledgeBaseAdapter");
 
@@ -25,10 +19,6 @@ const {
 const {
   Guardrails
 } = require("./guardrails/Guardrails");
-
-const {
-  MistralProvider
-} = require("./providers/MistralProvider");
 
 const {
   LLMService
@@ -43,9 +33,20 @@ const {
 } = require("./services/PlatformService");
 
 function startApplication({
-  cognitiveCore: injectedCognitiveCore = null,
-  llmProvider: injectedLLMProvider = null
+  cognitiveCore,
+  llmProvider
 } = {}) {
+  if (!cognitiveCore) {
+    throw new Error(
+      "startApplication requires a cognitiveCore."
+    );
+  }
+
+  if (!llmProvider) {
+    throw new Error(
+      "startApplication requires an llmProvider."
+    );
+  }
   const knowledgePath = path.join(
     __dirname,
     "..",
@@ -86,13 +87,6 @@ function startApplication({
         knowledgeBase.knowledgePackageBuilder
     });
 
-  const cognitiveCoreFactory =
-    new CognitiveCoreFactory();
-
-  const cognitiveCore =
-    injectedCognitiveCore ||
-    cognitiveCoreFactory.build();
-
   const cognitiveAIAdapter =
     new CognitiveAIAdapter({
       cognitivePipeline:
@@ -105,12 +99,8 @@ function startApplication({
   const guardrails =
     new Guardrails();
 
-  const mistralProvider =
-    injectedLLMProvider ||
-    new MistralProvider();
-
   const llmService =
-    new LLMService(mistralProvider);
+    new LLMService(llmProvider);
 
   const chatService =
     new ChatService({
@@ -143,29 +133,16 @@ function startApplication({
     cognitiveAIAdapter,
 
     guardrails,
-    mistralProvider,
+    llmProvider,
     llmService,
     chatService,
     platformService
   };
 }
 
-if (require.main === module) {
-  const application =
-    startApplication();
-
-  console.log({
-    name: application.name,
-    status: application.status,
-    documentsCount:
-      application.documentsCount,
-    fragmentsCount:
-      application.fragmentsCount
-  });
-}
-
 module.exports = {
   startApplication
 };
+
 
 

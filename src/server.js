@@ -234,7 +234,8 @@ function createServer(application) {
 }
 
 function startServer() {
-  const application = startApplication();
+  const application =
+    startLegacyApplication();
   const server = createServer(application);
 
   server.listen(PORT, HOST, () => {
@@ -261,3 +262,4 @@ module.exports = {
   createServer,
   startServer
 };
+
