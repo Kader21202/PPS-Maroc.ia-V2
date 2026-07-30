@@ -2,74 +2,118 @@
 
 class ExpressionPromptBuilder {
   build(finalAnswer) {
-    if (!finalAnswer || typeof finalAnswer !== "object") {
+    if (
+      !finalAnswer ||
+      typeof finalAnswer !== "object"
+    ) {
       throw new Error(
         "ExpressionPromptBuilder requires a valid FinalAnswer."
       );
     }
 
     const {
-      answer = "",
-      summary = "",
-      reasoningSummary = "",
-      confidence = "",
+      question = "",
+      documentaryEvidence = [],
       citations = [],
       metadata = {}
     } = finalAnswer;
 
+    const normalizedQuestion =
+      typeof question === "string"
+        ? question.trim()
+        : "";
+
+    const usableEvidence =
+      Array.isArray(documentaryEvidence)
+        ? documentaryEvidence.filter(
+            evidence =>
+              evidence &&
+              typeof evidence.text === "string" &&
+              evidence.text.trim()
+          )
+        : [];
+
+    const evidenceText =
+      usableEvidence.length > 0
+        ? usableEvidence
+            .map((evidence, index) => {
+              const documentId =
+                evidence.documentId ||
+                "document inconnu";
+
+              const sectionTitle =
+                typeof evidence.sectionTitle ===
+                  "string" &&
+                evidence.sectionTitle.trim()
+                  ? evidence.sectionTitle.trim()
+                  : "section sans titre";
+
+              const text =
+                evidence.text.trim();
+
+              return [
+                `===== FRAGMENT ${index + 1} =====`,
+                `DOCUMENT : ${documentId}`,
+                `SECTION : ${sectionTitle}`,
+                "",
+                text
+              ].join("\n");
+            })
+            .join("\n\n")
+        : "Aucune preuve documentaire disponible.";
+
     const userPrompt = `
-Tu es le moteur d'expression linguistique de PPS-Maroc.ia.
+Tu es le moteur de réponse documentaire de PPS-Maroc.ia.
+
+Ta mission est de répondre directement à la question de l'utilisateur en utilisant uniquement les preuves documentaires fournies.
 
 RÈGLES ABSOLUES :
 
-1. Tu n'es PAS le moteur de raisonnement.
-2. Tu ne dois PAS modifier les faits.
-3. Tu ne dois PAS ajouter de dates.
-4. Tu ne dois PAS ajouter de personnes.
-5. Tu ne dois PAS ajouter de lieux.
-6. Tu ne dois PAS ajouter de citations.
-7. Tu ne dois PAS ajouter de sources.
-8. Tu ne dois PAS ajouter de liens Internet.
-9. Tu ne dois PAS compléter avec tes connaissances.
-10. Tu dois uniquement améliorer la qualité rédactionnelle.
+1. Réponds uniquement à la question posée.
+2. Utilise uniquement les preuves documentaires fournies.
+3. N'utilise aucune connaissance extérieure.
+4. N'invente aucun fait, aucune date, aucune personne, aucun lieu ni aucune source.
+5. Ignore les fragments qui ne répondent pas directement à la question.
+6. Ne concatène pas mécaniquement tous les fragments.
+7. Regroupe les informations complémentaires.
+8. Supprime les répétitions.
+9. Ne mélange pas les informations concernant des personnes, événements ou organisations différents.
+10. Ne présente pas les rubriques techniques comme MOTS-CLÉS, QUESTIONS, PERSONNALITÉS, ORGANISATIONS, LIEUX ou SOURCES, sauf si leur contenu répond directement à la question.
+11. Ne dis jamais « Voici une reformulation ».
+12. Ne décris pas ta méthode de travail.
+13. Si les preuves sont insuffisantes, indique clairement que les documents disponibles ne permettent pas de répondre complètement.
+14. Rédige une réponse claire, cohérente, structurée et fidèle aux documents.
+15. Ne crée pas de section « Sources » à partir de ta propre connaissance.
 
-Si une information est absente du texte fourni, tu ne dois pas l'inventer.
+===== QUESTION UTILISATEUR =====
 
-Si aucune source n'est fournie, n'écris PAS de section "Sources".
+${normalizedQuestion || "Question non fournie."}
 
-===== RÉPONSE COGNITIVE =====
+===== PREUVES DOCUMENTAIRES =====
 
-${answer}
+${evidenceText}
 
-===== RÉSUMÉ =====
+===== CITATIONS DISPONIBLES =====
 
-${summary}
+${JSON.stringify(citations, null, 2)}
 
-===== RÉSUMÉ DU RAISONNEMENT =====
+===== STRATÉGIE DOCUMENTAIRE =====
 
-${reasoningSummary}
+${metadata.retrievalStrategy || metadata.reasoningStrategy || "semantic"}
 
-===== CONFIANCE =====
+===== INSTRUCTION FINALE =====
 
-${confidence}
+Construis maintenant la réponse qui répond précisément à la question utilisateur.
 
-===== CITATIONS =====
-
-${JSON.stringify(citations)}
-
-===== STRATÉGIE =====
-
-${metadata.reasoningStrategy || "unknown"}
-
-Ta mission consiste uniquement à reformuler cette réponse dans un français naturel, clair, professionnel et fluide, sans modifier son contenu.
+Sélectionne uniquement les fragments pertinents. N'ajoute aucune information absente des preuves documentaires.
 `.trim();
 
-return {
-  systemPrompt:
-    "Tu es le moteur d'expression linguistique de PPS-Maroc.ia.",
-  userPrompt,
-  metadata
-};
+    return {
+      systemPrompt:
+        "Tu es le moteur de réponse documentaire de PPS-Maroc.ia. Tu réponds uniquement à partir des preuves documentaires fournies.",
+      userPrompt,
+      metadata
+    };
   }
 }
 

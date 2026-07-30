@@ -3,9 +3,9 @@
 const http = require("http");
 
 const {
-  startLegacyApplication
+  startDocumentaryApplication
 } = require(
-  "./bootstrap/LegacyApplicationBootstrap"
+  "./bootstrap/DocumentaryApplicationBootstrap"
 );
 
 const PORT = Number(
@@ -237,7 +237,7 @@ function createServer(application) {
 
 function startServer() {
   const application =
-    startLegacyApplication();
+    startDocumentaryApplication();
   const server = createServer(application);
 
   server.listen(PORT, HOST, () => {
@@ -264,6 +264,7 @@ module.exports = {
   createServer,
   startServer
 };
+
 
 
 
