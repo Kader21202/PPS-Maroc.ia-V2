@@ -9,9 +9,9 @@ const {
 } = require("../../PPS-KnowledgeBase");
 
 const {
-  CognitiveAIBuilder
+  CognitiveCoreFactory
 } = require(
-  "../../PPS-CognitiveAI-Core/src"
+  "./bootstrap/CognitiveCoreFactory"
 );
 
 const {
@@ -86,9 +86,12 @@ function startApplication({
         knowledgeBase.knowledgePackageBuilder
     });
 
+  const cognitiveCoreFactory =
+    new CognitiveCoreFactory();
+
   const cognitiveCore =
     injectedCognitiveCore ||
-    new CognitiveAIBuilder().build();
+    cognitiveCoreFactory.build();
 
   const cognitiveAIAdapter =
     new CognitiveAIAdapter({
@@ -164,4 +167,5 @@ if (require.main === module) {
 module.exports = {
   startApplication
 };
+
 
