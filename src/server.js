@@ -3,8 +3,10 @@
 const http = require("http");
 
 const {
-  startApplication
-} = require("./app");
+  startLegacyApplication
+} = require(
+  "./bootstrap/LegacyApplicationBootstrap"
+);
 
 const PORT = Number(
   process.env.PPS_MAROC_API_PORT || 3001
@@ -262,4 +264,6 @@ module.exports = {
   createServer,
   startServer
 };
+
+
 
