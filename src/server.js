@@ -162,6 +162,107 @@ function createServer(application) {
 
       if (
         request.method === "POST" &&
+        requestUrl.pathname === "/api/chat/stream"
+      ) {
+        try {
+          const body = await readJsonBody(request);
+
+          const question = body?.question;
+
+          if (
+            typeof question !== "string" ||
+            question.trim().length === 0
+          ) {
+            sendJson(response, 400, {
+              error: {
+                code: "INVALID_QUESTION",
+                message:
+                  "The question must be a non-empty string."
+              }
+            });
+
+            return;
+          }
+
+          response.writeHead(200, {
+            "Content-Type":
+              "application/x-ndjson; charset=utf-8",
+            "Cache-Control": "no-cache",
+            "X-Content-Type-Options": "nosniff"
+          });
+
+          const result =
+            await application.platformService.askStream(
+              question.trim(),
+              (chunk) => {
+                response.write(
+                  JSON.stringify({
+                    type: "chunk",
+                    content: chunk
+                  }) + "\n"
+                );
+              }
+            );
+
+          const publicAnswer =
+            extractPublicAnswer(result);
+
+          response.write(
+            JSON.stringify({
+              type: "complete",
+              question: result.question,
+              answer: publicAnswer.content,
+              sources: [],
+              metadata: {
+                provider: publicAnswer.provider,
+                model: publicAnswer.model,
+                verification:
+                  result.verificationReport ?? null,
+                expression:
+                  publicAnswer.metadata
+              }
+            }) + "\n"
+          );
+
+          response.end();
+        } catch (error) {
+          console.error(
+            "POST /api/chat/stream failed:",
+            error
+          );
+
+          if (response.headersSent) {
+            response.write(
+              JSON.stringify({
+                type: "error",
+                error: {
+                  code: "CHAT_STREAMING_FAILED",
+                  message:
+                    error instanceof Error
+                      ? error.message
+                      : "An unexpected error occurred."
+                }
+              }) + "\n"
+            );
+
+            response.end();
+          } else {
+            sendJson(response, 500, {
+              error: {
+                code: "CHAT_STREAMING_FAILED",
+                message:
+                  error instanceof Error
+                    ? error.message
+                    : "An unexpected error occurred."
+              }
+            });
+          }
+        }
+
+        return;
+      }
+      if (
+        request.method === "POST" &&
         requestUrl.pathname === "/api/chat"
       ) {
         try {
@@ -264,7 +365,3 @@ module.exports = {
   createServer,
   startServer
 };
-
-
-
-
