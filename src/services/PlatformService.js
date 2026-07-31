@@ -21,6 +21,36 @@ class PlatformService {
     this.chatService = chatService;
   }
 
+  async askStream(question, onChunk) {
+    if (typeof onChunk !== "function") {
+      throw new Error(
+        "PlatformService.askStream requires an onChunk callback."
+      );
+    }
+
+    if (
+      typeof this.chatService.askStream !==
+      "function"
+    ) {
+      throw new Error(
+        "ChatService does not support streaming."
+      );
+    }
+
+    this.guardrails.validateInput(question);
+
+    const response =
+      await this.chatService.askStream(
+        question,
+        onChunk
+      );
+
+    this.guardrails.validateOutput(
+      response.finalAnswer
+    );
+
+    return response;
+  }
   async ask(question) {
     this.guardrails.validateInput(question);
 
