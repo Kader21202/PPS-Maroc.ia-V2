@@ -35,6 +35,120 @@ class ChatService {
     this.llm = llm;
   }
 
+  async askStream(question, onChunk) {
+    if (typeof onChunk !== "function") {
+      throw new Error(
+        "ChatService.askStream requires an onChunk callback."
+      );
+    }
+
+    if (!this.llm) {
+      throw new Error(
+        "ChatService streaming requires LLMService."
+      );
+    }
+
+    if (typeof this.llm.expressStream !== "function") {
+      throw new Error(
+        "LLMService does not support streaming."
+      );
+    }
+
+    if (this.guardrails) {
+      this.guardrails.validateInput(question);
+    }
+
+    const cognitiveContext =
+      await this.cognitiveAI.prepare({
+        question
+      });
+
+    if (
+      cognitiveContext.userIntent &&
+      cognitiveContext.userIntent
+        .clarificationRequired === true
+    ) {
+      const finalAnswer =
+        await this.cognitiveAI
+          .generateClarification(
+            cognitiveContext
+          );
+
+      if (this.guardrails) {
+        this.guardrails
+          .validateOutput(finalAnswer);
+      }
+
+      return {
+        question,
+        answer: finalAnswer.answer,
+        finalAnswer,
+        verificationReport: null,
+        knowledgePackage: null,
+        cognitiveContext
+      };
+    }
+
+    const retrievalStrategy =
+      cognitiveContext.plan?.retrievalStrategy ||
+      cognitiveContext.plan?.reasoningStrategy ||
+      "definition";
+
+    const knowledgePackage =
+      await this.knowledgeBase.build(
+        question,
+        {
+          limit: 30,
+          strategy: retrievalStrategy,
+          cognitiveRequest:
+            cognitiveContext.cognitiveRequest,
+          knowledgePlan:
+            cognitiveContext.plan
+        }
+      );
+
+    const finalAnswer =
+      await this.cognitiveAI.complete(
+        cognitiveContext,
+        knowledgePackage
+      );
+
+    if (this.guardrails) {
+      this.guardrails.validateOutput(
+        finalAnswer
+      );
+    }
+
+    let verificationReport = null;
+
+    if (this.verificationService) {
+      verificationReport =
+        await this.verificationService.verify(
+          finalAnswer
+        );
+
+      if (!verificationReport.valid) {
+        throw new Error(
+          "VerificationService: FinalAnswer rejected."
+        );
+      }
+    }
+
+    const answer =
+      await this.llm.expressStream(
+        finalAnswer,
+        onChunk
+      );
+
+    return {
+      question,
+      answer,
+      finalAnswer,
+      verificationReport,
+      knowledgePackage,
+      cognitiveContext
+    };
+  }
   async ask(question) {
     console.log("\n===== QUESTION =====");
     console.log(question);
