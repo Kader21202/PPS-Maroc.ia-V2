@@ -13,6 +13,10 @@ class ExpressionPromptBuilder {
 
     const {
       question = "",
+      answer = "",
+      summary = "",
+      reasoningSummary = "",
+      confidence = null,
       documentaryEvidence = [],
       citations = [],
       metadata = {}
@@ -21,6 +25,11 @@ class ExpressionPromptBuilder {
     const normalizedQuestion =
       typeof question === "string"
         ? question.trim()
+        : "";
+
+    const normalizedAnswer =
+      typeof answer === "string"
+        ? answer.trim()
         : "";
 
     const usableEvidence =
@@ -33,6 +42,91 @@ class ExpressionPromptBuilder {
           )
         : [];
 
+    /*
+     * MODE 1 — Réponse cognitive déjà construite par le Core.
+     *
+     * Le LLM ne doit pas refaire le raisonnement ni rejuger
+     * les preuves. Il doit uniquement exprimer proprement
+     * la réponse produite par le moteur cognitif.
+     */
+    if (
+      normalizedAnswer &&
+      usableEvidence.length === 0
+    ) {
+      const userPrompt = `
+Tu es le moteur d'expression de PPS-Maroc.ia.
+
+Le moteur cognitif a déjà analysé la question, sélectionné les connaissances pertinentes et construit une réponse.
+
+Ta mission est uniquement de produire une formulation finale claire et naturelle fidèle à cette réponse cognitive.
+
+RÈGLES ABSOLUES :
+
+1. Ne refais pas le raisonnement.
+2. Ne rejette pas la réponse cognitive sous prétexte qu'aucune preuve documentaire brute n'est fournie.
+3. N'ajoute aucune connaissance extérieure.
+4. N'invente aucun fait, aucune date, aucune personne, aucun lieu ni aucune source.
+5. Préserve toutes les informations importantes présentes dans la réponse cognitive.
+6. Supprime uniquement les lourdeurs de formulation et répétitions évidentes.
+7. Ne change pas le sens des affirmations.
+8. Ne décris pas ta méthode de travail.
+9. Ne dis jamais « Voici une reformulation ».
+10. Si la réponse cognitive exprime explicitement une absence d'information, conserve cette absence d'information.
+
+===== QUESTION UTILISATEUR =====
+
+${normalizedQuestion || "Question non fournie."}
+
+===== RÉPONSE PRODUITE PAR LE MOTEUR COGNITIF =====
+
+${normalizedAnswer}
+
+===== RÉSUMÉ COGNITIF =====
+
+${typeof summary === "string" && summary.trim()
+  ? summary.trim()
+  : "Non fourni."}
+
+===== RAISONNEMENT SYNTHÉTIQUE =====
+
+${typeof reasoningSummary === "string" && reasoningSummary.trim()
+  ? reasoningSummary.trim()
+  : "Non fourni."}
+
+===== CONFIANCE DU MOTEUR COGNITIF =====
+
+${confidence ?? "Non fournie."}
+
+===== CITATIONS DISPONIBLES =====
+
+${JSON.stringify(citations, null, 2)}
+
+===== STRATÉGIE COGNITIVE =====
+
+${metadata.reasoningStrategy || "definition"}
+
+===== INSTRUCTION FINALE =====
+
+Exprime fidèlement la réponse cognitive pour l'utilisateur, sans ajouter de faits absents.
+`.trim();
+
+      return {
+        systemPrompt:
+          "Tu es le moteur d'expression de PPS-Maroc.ia. Le raisonnement a déjà été effectué par le moteur cognitif ; tu dois uniquement exprimer fidèlement son résultat.",
+        userPrompt,
+        metadata: {
+          ...metadata,
+          expressionMode: "cognitive"
+        }
+      };
+    }
+
+    /*
+     * MODE 2 — Pipeline documentaire.
+     *
+     * Le LLM construit la réponse à partir des preuves
+     * documentaires fournies.
+     */
     const evidenceText =
       usableEvidence.length > 0
         ? usableEvidence
@@ -112,7 +206,10 @@ Sélectionne uniquement les fragments pertinents. N'ajoute aucune information ab
       systemPrompt:
         "Tu es le moteur de réponse documentaire de PPS-Maroc.ia. Tu réponds uniquement à partir des preuves documentaires fournies.",
       userPrompt,
-      metadata
+      metadata: {
+        ...metadata,
+        expressionMode: "documentary"
+      }
     };
   }
 }

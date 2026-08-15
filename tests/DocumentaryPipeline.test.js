@@ -74,18 +74,28 @@ async function run() {
     "complete() must return a FinalAnswer object."
   );
 
-  assert.ok(
-    finalAnswer.answer.includes(
-      "Ali Yata naît à Tanger."
-    ),
-    "FinalAnswer must contain the first fragment."
+  assert.strictEqual(
+    finalAnswer.answer,
+    "",
+    "DocumentaryPipeline must leave final wording to the expression layer when documentary evidence is available."
   );
 
-  assert.ok(
-    finalAnswer.answer.includes(
-      "Il rejoint le Parti communiste marocain en 1943."
-    ),
-    "FinalAnswer must contain the second fragment."
+  assert.strictEqual(
+    finalAnswer.documentaryEvidence.length,
+    2,
+    "FinalAnswer must expose one documentary evidence item per usable fragment."
+  );
+
+  assert.strictEqual(
+    finalAnswer.documentaryEvidence[0].text,
+    "Ali Yata naît à Tanger.",
+    "The first documentary fragment must be preserved."
+  );
+
+  assert.strictEqual(
+    finalAnswer.documentaryEvidence[1].text,
+    "Il rejoint le Parti communiste marocain en 1943.",
+    "The second documentary fragment must be preserved."
   );
 
   assert.strictEqual(
