@@ -69,9 +69,13 @@ RÈGLES ABSOLUES :
 5. Préserve toutes les informations importantes présentes dans la réponse cognitive.
 6. Supprime uniquement les lourdeurs de formulation et répétitions évidentes.
 7. Ne change pas le sens des affirmations.
-8. Ne décris pas ta méthode de travail.
-9. Ne dis jamais « Voici une reformulation ».
-10. Si la réponse cognitive exprime explicitement une absence d'information, conserve cette absence d'information.
+8. Ne fusionne pas deux faits distincts en une seule affirmation si le moteur cognitif les a présentés séparément.
+9. Ne crée aucune relation temporelle, causale, institutionnelle ou factuelle qui n'est pas explicitement établie dans la réponse cognitive.
+10. Lorsque deux événements ont des dates, acteurs, lieux ou contextes distincts, conserve leur séparation.
+11. Tu peux améliorer la fluidité entre les phrases, mais sans transformer plusieurs faits en un fait composite.
+12. Ne décris pas ta méthode de travail.
+13. Ne dis jamais « Voici une reformulation ».
+14. Si la réponse cognitive exprime explicitement une absence d'information, conserve cette absence d'information.
 
 ===== QUESTION UTILISATEUR =====
 
