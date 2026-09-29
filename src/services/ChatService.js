@@ -2,37 +2,113 @@
 
 class ChatService {
   constructor({
-  knowledgeBase,
-  cognitiveAI,
-  renderer = null,
-  guardrails = null,
-  verificationService = null,
-  llm = null
-}) {
-  if (!knowledgeBase) {
-    throw new Error(
-      "ChatService requires KnowledgeBaseAdapter."
-    );
-  }
+    knowledgeBase,
+    cognitiveAI,
+    renderer = null,
+    verificationService = null,
+    llm = null
+  }) {
+    if (!knowledgeBase) {
+      throw new Error(
+        "ChatService requires KnowledgeBaseAdapter."
+      );
+    }
 
-  if (!cognitiveAI) {
-    throw new Error(
-      "ChatService requires CognitiveAIAdapter."
-    );
-  }
+    if (!cognitiveAI) {
+      throw new Error(
+        "ChatService requires CognitiveAIAdapter."
+      );
+    }
 
-  if (!llm && !renderer) {
-    throw new Error(
-      "ChatService requires LLMService or RenderingService."
-    );
-  }
+    if (!llm && !renderer) {
+      throw new Error(
+        "ChatService requires LLMService or RenderingService."
+      );
+    }
 
-      this.knowledgeBase = knowledgeBase;
+    this.knowledgeBase = knowledgeBase;
     this.cognitiveAI = cognitiveAI;
     this.renderer = renderer;
-    this.guardrails = guardrails;
-    this.verificationService = verificationService;
+    this.verificationService =
+      verificationService;
     this.llm = llm;
+  }
+
+  async _prepareFinalAnswer(question) {
+
+    const cognitiveContext =
+      await this.cognitiveAI.prepare({
+        question
+      });
+
+    if (
+      cognitiveContext.userIntent &&
+      cognitiveContext.userIntent
+        .clarificationRequired === true
+    ) {
+      const finalAnswer =
+        await this.cognitiveAI
+          .generateClarification(
+            cognitiveContext
+          );
+
+
+      return {
+        finalAnswer,
+        verificationReport: null,
+        knowledgePackage: null,
+        cognitiveContext,
+        clarificationRequired: true
+      };
+    }
+
+    const retrievalStrategy =
+      cognitiveContext.plan?.retrievalStrategy ||
+      cognitiveContext.plan?.reasoningStrategy ||
+      "definition";
+
+    const knowledgePackage =
+      await this.knowledgeBase.build(
+        question,
+        {
+          limit: 30,
+          strategy: retrievalStrategy,
+          cognitiveRequest:
+            cognitiveContext.cognitiveRequest,
+          knowledgePlan:
+            cognitiveContext.plan
+        }
+      );
+
+    const finalAnswer =
+      await this.cognitiveAI.complete(
+        cognitiveContext,
+        knowledgePackage
+      );
+
+
+    let verificationReport = null;
+
+    if (this.verificationService) {
+      verificationReport =
+        await this.verificationService.verify(
+          finalAnswer
+        );
+
+      if (!verificationReport.valid) {
+        throw new Error(
+          "VerificationService: FinalAnswer rejected."
+        );
+      }
+    }
+
+    return {
+      finalAnswer,
+      verificationReport,
+      knowledgePackage,
+      cognitiveContext,
+      clarificationRequired: false
+    };
   }
 
   async askStream(question, onChunk) {
@@ -48,163 +124,80 @@ class ChatService {
       );
     }
 
-    if (typeof this.llm.expressStream !== "function") {
+    if (
+      typeof this.llm.expressStream !==
+      "function"
+    ) {
       throw new Error(
         "LLMService does not support streaming."
       );
     }
 
-    if (this.guardrails) {
-      this.guardrails.validateInput(question);
-    }
-
-    const cognitiveContext =
-      await this.cognitiveAI.prepare({
+    const prepared =
+      await this._prepareFinalAnswer(
         question
-      });
+      );
 
-    if (
-      cognitiveContext.userIntent &&
-      cognitiveContext.userIntent
-        .clarificationRequired === true
-    ) {
-      const finalAnswer =
-        await this.cognitiveAI
-          .generateClarification(
-            cognitiveContext
-          );
-
-      if (this.guardrails) {
-        this.guardrails
-          .validateOutput(finalAnswer);
-      }
-
+    if (prepared.clarificationRequired) {
       return {
         question,
-        answer: finalAnswer.answer,
-        finalAnswer,
-        verificationReport: null,
-        knowledgePackage: null,
-        cognitiveContext
+        answer:
+          prepared.finalAnswer.answer,
+        finalAnswer:
+          prepared.finalAnswer,
+        verificationReport:
+          prepared.verificationReport,
+        knowledgePackage:
+          prepared.knowledgePackage,
+        cognitiveContext:
+          prepared.cognitiveContext
       };
-    }
-
-    const retrievalStrategy =
-      cognitiveContext.plan?.retrievalStrategy ||
-      cognitiveContext.plan?.reasoningStrategy ||
-      "definition";
-
-    const knowledgePackage =
-      await this.knowledgeBase.build(
-        question,
-        {
-          limit: 30,
-          strategy: retrievalStrategy,
-          cognitiveRequest:
-            cognitiveContext.cognitiveRequest,
-          knowledgePlan:
-            cognitiveContext.plan
-        }
-      );
-
-    const finalAnswer =
-      await this.cognitiveAI.complete(
-        cognitiveContext,
-        knowledgePackage
-      );
-
-    if (this.guardrails) {
-      this.guardrails.validateOutput(
-        finalAnswer
-      );
-    }
-
-    let verificationReport = null;
-
-    if (this.verificationService) {
-      verificationReport =
-        await this.verificationService.verify(
-          finalAnswer
-        );
-
-      if (!verificationReport.valid) {
-        throw new Error(
-          "VerificationService: FinalAnswer rejected."
-        );
-      }
     }
 
     const answer =
       await this.llm.expressStream(
-        finalAnswer,
+        prepared.finalAnswer,
         onChunk
       );
 
     return {
       question,
       answer,
-      finalAnswer,
-      verificationReport,
-      knowledgePackage,
-      cognitiveContext
+      finalAnswer:
+        prepared.finalAnswer,
+      verificationReport:
+        prepared.verificationReport,
+      knowledgePackage:
+        prepared.knowledgePackage,
+      cognitiveContext:
+        prepared.cognitiveContext
     };
   }
+
   async ask(question) {
     console.log("\n===== QUESTION =====");
     console.log(question);
 
-    if (this.guardrails) {
-      this.guardrails.validateInput(question);
-    }
-
-    const cognitiveContext =
-      await this.cognitiveAI.prepare({
+    const prepared =
+      await this._prepareFinalAnswer(
         question
-      });
+      );
 
-    if (
-      cognitiveContext.userIntent &&
-      cognitiveContext.userIntent
-        .clarificationRequired === true
-    ) {
-      const finalAnswer =
-        await this.cognitiveAI
-          .generateClarification(
-            cognitiveContext
-          );
-
-      if (this.guardrails) {
-        this.guardrails
-          .validateOutput(finalAnswer);
-      }
-
+    if (prepared.clarificationRequired) {
       return {
         question,
-        answer: finalAnswer.answer,
-        finalAnswer,
-        verificationReport: null,
-        knowledgePackage: null,
-        cognitiveContext
+        answer:
+          prepared.finalAnswer.answer,
+        finalAnswer:
+          prepared.finalAnswer,
+        verificationReport:
+          prepared.verificationReport,
+        knowledgePackage:
+          prepared.knowledgePackage,
+        cognitiveContext:
+          prepared.cognitiveContext
       };
     }
-
-    const retrievalStrategy =
-      cognitiveContext.plan?.retrievalStrategy ||
-      cognitiveContext.plan?.reasoningStrategy ||
-      "definition";
-
-    const knowledgePackage =
-      await this.knowledgeBase.build(
-        question,
-        {
-          limit: 30,
-          strategy: retrievalStrategy,
-          cognitiveRequest:
-            cognitiveContext.cognitiveRequest,
-          knowledgePlan:
-            cognitiveContext.plan
-        }
-      );
 
     console.log(
       "\n===== KNOWLEDGE PACKAGE ====="
@@ -214,25 +207,29 @@ class ChatService {
       {
         fragmentsCount:
           Array.isArray(
-            knowledgePackage.fragments
+            prepared.knowledgePackage
+              ?.fragments
           )
-            ? knowledgePackage.fragments.length
+            ? prepared.knowledgePackage
+                .fragments.length
             : 0,
 
         fragments:
           Array.isArray(
-            knowledgePackage.fragments
+            prepared.knowledgePackage
+              ?.fragments
           )
-            ? knowledgePackage.fragments.map(
-                (fragment, index) => ({
-                  index: index + 1,
-                  id: fragment.id,
-                  documentId:
-                    fragment.documentId,
-                  sectionTitle:
-                    fragment.sectionTitle
-                })
-              )
+            ? prepared.knowledgePackage
+                .fragments.map(
+                  (fragment, index) => ({
+                    index: index + 1,
+                    id: fragment.id,
+                    documentId:
+                      fragment.documentId,
+                    sectionTitle:
+                      fragment.sectionTitle
+                  })
+                )
             : []
       },
       {
@@ -240,57 +237,41 @@ class ChatService {
       }
     );
 
-    const finalAnswer =
-      await this.cognitiveAI.complete(
-        cognitiveContext,
-        knowledgePackage
-      );
-
     console.log(
       "\n===== FINAL ANSWER BEFORE LLM ====="
     );
 
     console.dir(
-      finalAnswer,
+      prepared.finalAnswer,
       {
         depth: null
       }
     );
 
-    if (this.guardrails) {
-      this.guardrails.validateOutput(
-        finalAnswer
-      );
-    }
-
-    let verificationReport = null;
-    if (this.verificationService) {
-      verificationReport =
-        await this.verificationService.verify(
-          finalAnswer
-        );
-
-      if (!verificationReport.valid) {
-        throw new Error(
-          "VerificationService: FinalAnswer rejected."
-        );
-      }
-    }
-
     const answer = this.llm
-      ? await this.llm.express(finalAnswer)
-      : this.renderer.render(finalAnswer);
+      ? await this.llm.express(
+          prepared.finalAnswer
+        )
+      : this.renderer.render(
+          prepared.finalAnswer
+        );
 
     console.log("\n===== LLM ANSWER =====");
-    console.dir(answer, { depth: null });
+    console.dir(answer, {
+      depth: null
+    });
 
     return {
       question,
       answer,
-      finalAnswer,
-      verificationReport,
-      knowledgePackage,
-      cognitiveContext
+      finalAnswer:
+        prepared.finalAnswer,
+      verificationReport:
+        prepared.verificationReport,
+      knowledgePackage:
+        prepared.knowledgePackage,
+      cognitiveContext:
+        prepared.cognitiveContext
     };
   }
 }
