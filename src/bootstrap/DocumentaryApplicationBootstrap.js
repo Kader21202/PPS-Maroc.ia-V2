@@ -5,9 +5,8 @@ const {
 } = require("./DocumentaryCoreFactory");
 
 const {
-  MistralProvider
-} = require("../providers/MistralProvider");
-
+  GroqProvider
+} = require("../providers/GroqProvider");
 const {
   startApplication
 } = require("../app");
@@ -17,7 +16,7 @@ function startDocumentaryApplication() {
     new DocumentaryCoreFactory().build();
 
   const llmProvider =
-    new MistralProvider();
+  new GroqProvider();
 
   return startApplication({
     cognitiveCore,

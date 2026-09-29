@@ -5,8 +5,8 @@ const {
 } = require("./CognitiveCoreFactory");
 
 const {
-  MistralProvider
-} = require("../providers/MistralProvider");
+  GroqProvider
+} = require("../providers/GroqProvider");
 
 const {
   startApplication
@@ -17,7 +17,7 @@ function startLegacyApplication() {
     new CognitiveCoreFactory().build();
 
   const llmProvider =
-    new MistralProvider();
+    new GroqProvider();
 
   return startApplication({
     cognitiveCore,
