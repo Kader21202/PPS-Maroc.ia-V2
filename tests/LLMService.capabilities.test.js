@@ -22,14 +22,7 @@ class CapabilityDisabledProvider {
 
   getCapabilities() {
     return {
-      streaming: false,
-
-      requestLimits: {
-        maxInputTokens: null,
-        maxOutputTokens: null,
-        maxRequestsPerMinute: null,
-        maxTokensPerMinute: null
-      }
+      streaming: false
     };
   }
 

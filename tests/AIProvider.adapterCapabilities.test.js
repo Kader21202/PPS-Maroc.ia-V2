@@ -34,10 +34,49 @@ function validateProviderCapabilities(
   );
 
   assert.ok(
-    capabilities.requestLimits &&
-    typeof capabilities.requestLimits ===
+    capabilities.requestCapacity &&
+    typeof capabilities.requestCapacity ===
       "object",
-    `${name} must expose requestLimits.`
+    `${name} must expose requestCapacity.`
+  );
+
+  assert.ok(
+    capabilities.rateLimits &&
+    typeof capabilities.rateLimits ===
+      "object",
+    `${name} must expose rateLimits.`
+  );
+
+  assert.ok(
+    Object.prototype.hasOwnProperty.call(
+      capabilities.requestCapacity,
+      "maxInputTokens"
+    ),
+    `${name}.requestCapacity must expose maxInputTokens.`
+  );
+
+  assert.ok(
+    Object.prototype.hasOwnProperty.call(
+      capabilities.requestCapacity,
+      "maxOutputTokens"
+    ),
+    `${name}.requestCapacity must expose maxOutputTokens.`
+  );
+
+  assert.ok(
+    Object.prototype.hasOwnProperty.call(
+      capabilities.rateLimits,
+      "maxRequestsPerMinute"
+    ),
+    `${name}.rateLimits must expose maxRequestsPerMinute.`
+  );
+
+  assert.ok(
+    Object.prototype.hasOwnProperty.call(
+      capabilities.rateLimits,
+      "maxTokensPerMinute"
+    ),
+    `${name}.rateLimits must expose maxTokensPerMinute.`
   );
 
   if (capabilities.streaming) {

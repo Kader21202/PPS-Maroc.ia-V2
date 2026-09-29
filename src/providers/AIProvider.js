@@ -11,9 +11,12 @@ class AIProvider {
     return {
       streaming: false,
 
-      requestLimits: {
+      requestCapacity: {
         maxInputTokens: null,
-        maxOutputTokens: null,
+        maxOutputTokens: null
+      },
+
+      rateLimits: {
         maxRequestsPerMinute: null,
         maxTokensPerMinute: null
       }

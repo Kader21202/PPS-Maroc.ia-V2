@@ -2,6 +2,10 @@
 
 const { AIProvider } = require("./AIProvider");
 
+const {
+  AIProviderHttpError
+} = require("./AIProviderHttpError");
+
 class MistralProvider extends AIProvider {
   constructor({
     apiKey = process.env.MISTRAL_API_KEY,
@@ -91,10 +95,22 @@ class MistralProvider extends AIProvider {
           ? await response.text()
           : "";
 
-      throw new Error(
-        `Mistral API error: ${response.status} ${response.statusText}` +
-        (errorBody ? ` - ${errorBody}` : "")
-      );
+      const retryAfter =
+        response.headers &&
+        typeof response.headers.get === "function"
+          ? response.headers.get(
+              "retry-after"
+            )
+          : null;
+
+      throw new AIProviderHttpError({
+        provider: "mistral",
+        status: response.status,
+        statusText:
+          response.statusText,
+        body: errorBody,
+        retryAfter
+      });
     }
 
     if (
@@ -250,12 +266,27 @@ class MistralProvider extends AIProvider {
     });
 
     if (!response.ok) {
-      const errorBody = await response.text();
+      const errorBody =
+        typeof response.text === "function"
+          ? await response.text()
+          : "";
 
-      throw new Error(
-        `Mistral API error: ${response.status} ${response.statusText}` +
-        (errorBody ? ` - ${errorBody}` : "")
-      );
+      const retryAfter =
+        response.headers &&
+        typeof response.headers.get === "function"
+          ? response.headers.get(
+              "retry-after"
+            )
+          : null;
+
+      throw new AIProviderHttpError({
+        provider: "mistral",
+        status: response.status,
+        statusText:
+          response.statusText,
+        body: errorBody,
+        retryAfter
+      });
     }
 
     const data = await response.json();
@@ -277,3 +308,5 @@ class MistralProvider extends AIProvider {
 module.exports = {
   MistralProvider
 };
+
+

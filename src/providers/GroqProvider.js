@@ -2,6 +2,10 @@
 
 const { AIProvider } = require("./AIProvider");
 
+const {
+  AIProviderHttpError
+} = require("./AIProviderHttpError");
+
 class GroqProvider extends AIProvider {
   constructor({
     apiKey = process.env.GROQ_API_KEY,
@@ -69,12 +73,25 @@ class GroqProvider extends AIProvider {
     });
 
     if (!response.ok) {
-      const errorBody = await response.text();
+      const errorBody =
+        await response.text();
 
-      throw new Error(
-        `Groq API error: ${response.status} ${response.statusText}` +
-        (errorBody ? ` - ${errorBody}` : "")
-      );
+      const retryAfter =
+        response.headers &&
+        typeof response.headers.get === "function"
+          ? response.headers.get(
+              "retry-after"
+            )
+          : null;
+
+      throw new AIProviderHttpError({
+        provider: "groq",
+        status: response.status,
+        statusText:
+          response.statusText,
+        body: errorBody,
+        retryAfter
+      });
     }
 
     const data = await response.json();
@@ -99,3 +116,4 @@ class GroqProvider extends AIProvider {
 module.exports = {
   GroqProvider
 };
+

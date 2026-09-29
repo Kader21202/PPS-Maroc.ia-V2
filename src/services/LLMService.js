@@ -5,7 +5,11 @@ const {
 } = require("../prompts/ExpressionPromptBuilder");
 
 class LLMService {
-  constructor(provider, promptBuilder = new ExpressionPromptBuilder()) {
+  constructor(
+    provider,
+    promptBuilder = new ExpressionPromptBuilder(),
+    requestExecutor = null
+  ) {
     if (!provider || typeof provider.invoke !== "function") {
       throw new Error("LLMService requires a valid AIProvider.");
     }
@@ -16,8 +20,21 @@ class LLMService {
       );
     }
 
+    if (
+      requestExecutor !== null &&
+      (
+        typeof requestExecutor !== "object" ||
+        typeof requestExecutor.execute !== "function"
+      )
+    ) {
+      throw new Error(
+        "LLMService requires a valid PromptRequestExecutor."
+      );
+    }
+
     this.provider = provider;
     this.promptBuilder = promptBuilder;
+    this.requestExecutor = requestExecutor;
   }
 
   async expressStream(finalAnswer, onChunk) {
@@ -47,9 +64,7 @@ class LLMService {
       );
     }
 
-    if (
-      typeof this.provider.stream !== "function"
-    ) {
+    if (typeof this.provider.stream !== "function") {
       throw new Error(
         "LLMService provider declares streaming support but does not implement stream()."
       );
@@ -74,26 +89,40 @@ class LLMService {
       onChunk
     );
   }
+
   async express(finalAnswer) {
-  if (!finalAnswer || typeof finalAnswer !== "object") {
-    throw new Error("LLMService requires a valid FinalAnswer.");
-  }
+    if (!finalAnswer || typeof finalAnswer !== "object") {
+      throw new Error(
+        "LLMService requires a valid FinalAnswer."
+      );
+    }
 
-  const promptRequest = this.promptBuilder.build(finalAnswer);
+    const promptRequest =
+      this.promptBuilder.build(finalAnswer);
 
-  if (
-    !promptRequest ||
-    typeof promptRequest !== "object" ||
-    typeof promptRequest.systemPrompt !== "string" ||
-    typeof promptRequest.userPrompt !== "string"
-  ) {
-    throw new Error(
-      "ExpressionPromptBuilder must return a valid prompt request."
+    if (
+      !promptRequest ||
+      typeof promptRequest !== "object" ||
+      typeof promptRequest.systemPrompt !== "string" ||
+      typeof promptRequest.userPrompt !== "string"
+    ) {
+      throw new Error(
+        "ExpressionPromptBuilder must return a valid prompt request."
+      );
+    }
+
+    if (this.requestExecutor) {
+      return this.requestExecutor.execute({
+        promptRequest,
+        finalAnswer,
+        provider: this.provider
+      });
+    }
+
+    return this.provider.invoke(
+      promptRequest
     );
   }
-
-  return this.provider.invoke(promptRequest);
-}
 }
 
 module.exports = {

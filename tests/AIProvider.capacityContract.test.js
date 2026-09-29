@@ -4,79 +4,59 @@ const assert = require("assert");
 
 const {
   AIProvider
-} = require(
-  "../src/providers/AIProvider"
-);
+} = require("../src/providers/AIProvider");
 
-class InvokeOnlyProvider
-  extends AIProvider {
-
+class TestProvider extends AIProvider {
   async invoke() {
     return {
-      provider: "fake",
+      provider: "test",
       content: "OK"
     };
   }
 }
 
 const provider =
-  new InvokeOnlyProvider();
-
-assert.strictEqual(
-  typeof provider.getCapabilities,
-  "function",
-  "AIProvider must expose getCapabilities()."
-);
+  new TestProvider();
 
 const capabilities =
   provider.getCapabilities();
 
 assert.ok(
-  capabilities &&
-  typeof capabilities === "object",
-  "Provider capabilities must be an object."
-);
-
-assert.strictEqual(
-  capabilities.streaming,
-  false,
-  "Streaming must be false by default."
-);
-
-assert.ok(
   capabilities.requestCapacity &&
-  typeof capabilities.requestCapacity ===
-    "object",
+  typeof capabilities.requestCapacity === "object",
   "Provider capabilities must expose requestCapacity."
 );
 
 assert.strictEqual(
   capabilities.requestCapacity.maxInputTokens,
-  null
+  null,
+  "maxInputTokens must belong to requestCapacity."
 );
 
 assert.strictEqual(
   capabilities.requestCapacity.maxOutputTokens,
-  null
+  null,
+  "maxOutputTokens must belong to requestCapacity."
 );
 
 assert.ok(
   capabilities.rateLimits &&
-  typeof capabilities.rateLimits ===
-    "object",
+  typeof capabilities.rateLimits === "object",
   "Provider capabilities must expose rateLimits."
 );
 
 assert.strictEqual(
   capabilities.rateLimits.maxRequestsPerMinute,
-  null
+  null,
+  "maxRequestsPerMinute must belong to rateLimits."
 );
 
 assert.strictEqual(
   capabilities.rateLimits.maxTokensPerMinute,
-  null
+  null,
+  "maxTokensPerMinute must belong to rateLimits."
 );
 
 console.log(
-  "AIProvider.capabilities.test.js: PASS"
+  "AIProvider.capacityContract.test.js: PASS"
 );

@@ -21,14 +21,7 @@ class FakePromptBuilder {
 class FakeProvider {
   getCapabilities() {
     return {
-      streaming: true,
-
-      requestLimits: {
-        maxInputTokens: null,
-        maxOutputTokens: null,
-        maxRequestsPerMinute: null,
-        maxTokensPerMinute: null
-      }
+      streaming: true
     };
   }
 
