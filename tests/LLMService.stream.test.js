@@ -19,6 +19,19 @@ class FakePromptBuilder {
 }
 
 class FakeProvider {
+  getCapabilities() {
+    return {
+      streaming: true,
+
+      requestLimits: {
+        maxInputTokens: null,
+        maxOutputTokens: null,
+        maxRequestsPerMinute: null,
+        maxTokensPerMinute: null
+      }
+    };
+  }
+
   async invoke() {
     throw new Error(
       "invoke() must not be called during streaming."
@@ -93,4 +106,3 @@ class FakeProvider {
   console.error(error);
   process.exit(1);
 });
-

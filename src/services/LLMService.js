@@ -33,12 +33,25 @@ class LLMService {
       );
     }
 
+    const capabilities =
+      typeof this.provider.getCapabilities === "function"
+        ? this.provider.getCapabilities()
+        : null;
+
     if (
-      !this.provider ||
-      typeof this.provider.stream !== "function"
+      !capabilities ||
+      capabilities.streaming !== true
     ) {
       throw new Error(
         "LLMService provider does not support streaming."
+      );
+    }
+
+    if (
+      typeof this.provider.stream !== "function"
+    ) {
+      throw new Error(
+        "LLMService provider declares streaming support but does not implement stream()."
       );
     }
 

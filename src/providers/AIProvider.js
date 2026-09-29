@@ -1,8 +1,23 @@
 "use strict";
 
 class AIProvider {
-  invoke(prompt) {
-    throw new Error("invoke() must be implemented by the provider.");
+  invoke() {
+    throw new Error(
+      "invoke() must be implemented by the provider."
+    );
+  }
+
+  getCapabilities() {
+    return {
+      streaming: false,
+
+      requestLimits: {
+        maxInputTokens: null,
+        maxOutputTokens: null,
+        maxRequestsPerMinute: null,
+        maxTokensPerMinute: null
+      }
+    };
   }
 }
 

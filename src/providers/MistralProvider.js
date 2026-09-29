@@ -20,6 +20,16 @@ class MistralProvider extends AIProvider {
     this.endpoint = "https://api.mistral.ai/v1/chat/completions";
   }
 
+  getCapabilities() {
+    const capabilities =
+      super.getCapabilities();
+
+    return {
+      ...capabilities,
+      streaming: true
+    };
+  }
+
   async stream(promptRequest, onChunk) {
     if (!promptRequest || typeof promptRequest !== "object") {
       throw new Error("Prompt request must be an object.");
