@@ -29,6 +29,10 @@ const {
 } = require("./services/PromptRequestExecutor");
 
 const {
+  ProviderExecutionPolicy
+} = require("./services/ProviderExecutionPolicy");
+
+const {
   DocumentaryContextPlanner
 } = require("./services/DocumentaryContextPlanner");
 
@@ -128,12 +132,22 @@ function startApplication({
   const guardrails =
     new Guardrails();
 
+  const executionPolicy =
+    new ProviderExecutionPolicy();
+
+  const terminalRequestExecutor =
+    new PromptRequestExecutor({
+      executionPolicy
+    });
+
   const documentaryPlanner =
     new DocumentaryContextPlanner();
 
   const documentaryExtractor =
     new DocumentaryEvidenceExtractor({
-      provider: llmProvider
+      provider: llmProvider,
+      requestExecutor:
+        terminalRequestExecutor
     });
 
   const documentaryProcessor =
@@ -146,9 +160,6 @@ function startApplication({
 
   const documentarySynthesisPromptBuilder =
     new DocumentarySynthesisPromptBuilder();
-
-  const terminalRequestExecutor =
-    new PromptRequestExecutor();
 
   const documentaryOverflowHandler =
     new DocumentaryOverflowHandler({
@@ -166,7 +177,8 @@ function startApplication({
       measurer:
         requestExecution.measurer,
       overflowHandler:
-        documentaryOverflowHandler
+        documentaryOverflowHandler,
+      executionPolicy
     });
 
   const llmService =

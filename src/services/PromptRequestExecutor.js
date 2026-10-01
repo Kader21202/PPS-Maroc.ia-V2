@@ -29,7 +29,9 @@ class PromptRequestExecutor {
     overflowHandler = null,
 
     errorClassifier =
-      new AIProviderErrorClassifier()
+      new AIProviderErrorClassifier(),
+
+    executionPolicy = null
   } = {}) {
     if (
       !measurer ||
@@ -74,8 +76,23 @@ class PromptRequestExecutor {
     this.admission = admission;
     this.overflowHandler =
       overflowHandler;
+    if (
+      executionPolicy !== null &&
+      (
+        typeof executionPolicy !== "object" ||
+        typeof executionPolicy.execute !== "function"
+      )
+    ) {
+      throw new Error(
+        "PromptRequestExecutor requires a valid execution policy."
+      );
+    }
+
     this.errorClassifier =
       errorClassifier;
+
+    this.executionPolicy =
+      executionPolicy;
   }
 
   async _invokeProvider(
@@ -171,6 +188,16 @@ class PromptRequestExecutor {
     switch (admission.status) {
       case "FIT":
       case "UNKNOWN":
+        if (this.executionPolicy) {
+          return this.executionPolicy.execute(
+            () =>
+              this._invokeProvider(
+                provider,
+                promptRequest
+              )
+          );
+        }
+
         return this._invokeProvider(
           provider,
           promptRequest

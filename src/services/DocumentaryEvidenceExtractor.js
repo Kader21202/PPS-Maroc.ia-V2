@@ -1,7 +1,10 @@
 "use strict";
 
 class DocumentaryEvidenceExtractor {
-  constructor({ provider } = {}) {
+  constructor({
+    provider,
+    requestExecutor = null
+  } = {}) {
     if (
       !provider ||
       typeof provider.invoke !== "function"
@@ -11,7 +14,21 @@ class DocumentaryEvidenceExtractor {
       );
     }
 
+    if (
+      requestExecutor !== null &&
+      (
+        typeof requestExecutor !== "object" ||
+        typeof requestExecutor.execute !== "function"
+      )
+    ) {
+      throw new Error(
+        "DocumentaryEvidenceExtractor requires a valid request executor."
+      );
+    }
+
     this.provider = provider;
+    this.requestExecutor =
+      requestExecutor;
   }
 
   async extract({
@@ -91,9 +108,21 @@ class DocumentaryEvidenceExtractor {
     };
 
     const response =
-      await this.provider.invoke(
-        promptRequest
-      );
+      this.requestExecutor
+        ? await this.requestExecutor.execute({
+            promptRequest,
+
+            finalAnswer: {
+              question:
+                question.trim()
+            },
+
+            provider:
+              this.provider
+          })
+        : await this.provider.invoke(
+            promptRequest
+          );
 
     if (
       !response ||

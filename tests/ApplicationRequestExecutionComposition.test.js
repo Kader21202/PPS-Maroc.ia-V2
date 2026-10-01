@@ -148,8 +148,48 @@ assert.strictEqual(
   "startApplication must allow injection of the request measurer."
 );
 
+const mainExecutor =
+  application.requestExecutor;
+
+const overflowHandler =
+  mainExecutor.overflowHandler;
+
+const terminalExecutor =
+  overflowHandler.requestExecutor;
+
+const documentaryExtractor =
+  overflowHandler.processor.extractor;
+
+assert.ok(
+  mainExecutor.executionPolicy,
+  "The main request executor must use an execution policy."
+);
+
+assert.ok(
+  terminalExecutor.executionPolicy,
+  "The terminal request executor must use an execution policy."
+);
+
+assert.strictEqual(
+  terminalExecutor.executionPolicy,
+  mainExecutor.executionPolicy,
+  "Main and terminal executors must share the same execution policy."
+);
+
+assert.strictEqual(
+  documentaryExtractor.requestExecutor,
+  terminalExecutor,
+  "Documentary extraction must use the terminal request executor."
+);
+
+assert.strictEqual(
+  documentaryExtractor.requestExecutor
+    .overflowHandler,
+  null,
+  "Documentary extraction must not recursively enter documentary overflow."
+);
+
 console.log(
   "✅ Application request execution composition validée"
 );
-
 
