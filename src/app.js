@@ -25,6 +25,34 @@ const {
 } = require("./services/LLMService");
 
 const {
+  PromptRequestExecutor
+} = require("./services/PromptRequestExecutor");
+
+const {
+  DocumentaryContextPlanner
+} = require("./services/DocumentaryContextPlanner");
+
+const {
+  DocumentaryEvidenceExtractor
+} = require("./services/DocumentaryEvidenceExtractor");
+
+const {
+  DocumentaryBatchProcessor
+} = require("./services/DocumentaryBatchProcessor");
+
+const {
+  DocumentaryConsolidator
+} = require("./services/DocumentaryConsolidator");
+
+const {
+  DocumentaryOverflowHandler
+} = require("./services/DocumentaryOverflowHandler");
+
+const {
+  DocumentarySynthesisPromptBuilder
+} = require("./prompts/DocumentarySynthesisPromptBuilder");
+
+const {
   ChatService
 } = require("./services/ChatService");
 
@@ -34,7 +62,8 @@ const {
 
 function startApplication({
   cognitiveCore,
-  llmProvider
+  llmProvider,
+  requestExecution = {}
 } = {}) {
   if (!cognitiveCore) {
     throw new Error(
@@ -99,8 +128,53 @@ function startApplication({
   const guardrails =
     new Guardrails();
 
+  const documentaryPlanner =
+    new DocumentaryContextPlanner();
+
+  const documentaryExtractor =
+    new DocumentaryEvidenceExtractor({
+      provider: llmProvider
+    });
+
+  const documentaryProcessor =
+    new DocumentaryBatchProcessor({
+      extractor: documentaryExtractor
+    });
+
+  const documentaryConsolidator =
+    new DocumentaryConsolidator();
+
+  const documentarySynthesisPromptBuilder =
+    new DocumentarySynthesisPromptBuilder();
+
+  const terminalRequestExecutor =
+    new PromptRequestExecutor();
+
+  const documentaryOverflowHandler =
+    new DocumentaryOverflowHandler({
+      planner: documentaryPlanner,
+      processor: documentaryProcessor,
+      consolidator: documentaryConsolidator,
+      synthesisPromptBuilder:
+        documentarySynthesisPromptBuilder,
+      requestExecutor:
+        terminalRequestExecutor
+    });
+
+  const requestExecutor =
+    new PromptRequestExecutor({
+      measurer:
+        requestExecution.measurer,
+      overflowHandler:
+        documentaryOverflowHandler
+    });
+
   const llmService =
-    new LLMService(llmProvider);
+    new LLMService(
+      llmProvider,
+      undefined,
+      requestExecutor
+    );
 
   const chatService =
     new ChatService({
@@ -134,6 +208,7 @@ function startApplication({
 
     guardrails,
     llmProvider,
+    requestExecutor,
     llmService,
     chatService,
     platformService
@@ -143,6 +218,4 @@ function startApplication({
 module.exports = {
   startApplication
 };
-
-
 
