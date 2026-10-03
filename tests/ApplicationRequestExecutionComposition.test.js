@@ -57,10 +57,12 @@ const provider = {
   getCapabilities() {
     return {
       streaming: false,
+
       requestCapacity: {
         maxInputTokens: null,
         maxOutputTokens: null
       },
+
       rateLimits: {
         maxRequestsPerMinute: null,
         maxTokensPerMinute: null
@@ -69,6 +71,12 @@ const provider = {
   }
 };
 
+/*
+ * Default composition:
+ * request execution exists, but documentary
+ * overflow must not be invented without an
+ * explicit planning policy.
+ */
 const application =
   startApplication({
     cognitiveCore,
@@ -87,82 +95,144 @@ assert.strictEqual(
   "The assembled request executor must expose execute()."
 );
 
-assert.ok(
-  application.requestExecutor.overflowHandler,
-  "The main request executor must assemble a documentary overflow handler."
-);
-
-assert.strictEqual(
-  typeof application.requestExecutor
-    .overflowHandler.execute,
-  "function",
-  "The documentary overflow handler must expose execute()."
-);
-
-assert.ok(
-  application.requestExecutor
-    .overflowHandler.requestExecutor,
-  "The documentary overflow handler must use a terminal request executor for final synthesis."
-);
-
-assert.notStrictEqual(
-  application.requestExecutor
-    .overflowHandler.requestExecutor,
-  application.requestExecutor,
-  "The terminal request executor must be distinct from the main executor."
-);
-
 assert.strictEqual(
   application.requestExecutor
-    .overflowHandler.requestExecutor
     .overflowHandler,
   null,
-  "The terminal request executor must not recursively configure an overflow handler."
+  "Documentary overflow must remain disabled when no documentary planner is configured."
 );
 
+assert.ok(
+  application.requestExecutor
+    .executionPolicy,
+  "The main request executor must use an execution policy."
+);
+
+/*
+ * Request measurement remains independently
+ * injectable.
+ */
 const injectedMeasurer = {
   measure() {
     return {
       inputTokens: 100,
       characters: 100,
       exact: true,
-      measurementMethod: "test-exact-token-count"
+      measurementMethod:
+        "test-exact-token-count"
     };
   }
 };
 
-const injectedApplication =
+const measurerInjectedApplication =
   startApplication({
     cognitiveCore,
     llmProvider: provider,
+
     requestExecution: {
       measurer: injectedMeasurer
     }
   });
 
 assert.strictEqual(
-  injectedApplication
+  measurerInjectedApplication
     .requestExecutor
     .measurer,
   injectedMeasurer,
   "startApplication must allow injection of the request measurer."
 );
 
+assert.strictEqual(
+  measurerInjectedApplication
+    .requestExecutor
+    .overflowHandler,
+  null,
+  "Injecting a measurer alone must not invent a documentary overflow policy."
+);
+
+/*
+ * Documentary overflow becomes operational only
+ * when a planner is explicitly supplied.
+ */
+const injectedPlanner = {
+  plan(finalAnswer) {
+    return {
+      mode: "direct",
+
+      batches: [
+        {
+          evidence:
+            finalAnswer.documentaryEvidence || [],
+          characters: 0
+        }
+      ],
+
+      evidenceCount:
+        Array.isArray(
+          finalAnswer.documentaryEvidence
+        )
+          ? finalAnswer
+              .documentaryEvidence.length
+          : 0,
+
+      totalCharacters: 0
+    };
+  }
+};
+
+const plannerInjectedApplication =
+  startApplication({
+    cognitiveCore,
+    llmProvider: provider,
+
+    requestExecution: {
+      documentaryPlanner:
+        injectedPlanner
+    }
+  });
+
 const mainExecutor =
-  application.requestExecutor;
+  plannerInjectedApplication
+    .requestExecutor;
 
 const overflowHandler =
   mainExecutor.overflowHandler;
 
+assert.ok(
+  overflowHandler,
+  "An explicitly configured documentary planner must enable documentary overflow."
+);
+
+assert.strictEqual(
+  overflowHandler.planner,
+  injectedPlanner,
+  "startApplication must preserve the explicitly injected documentary planner."
+);
+
+assert.strictEqual(
+  typeof overflowHandler.execute,
+  "function",
+  "The documentary overflow handler must expose execute()."
+);
+
 const terminalExecutor =
   overflowHandler.requestExecutor;
 
-const documentaryExtractor =
-  overflowHandler.processor.extractor;
-
 assert.ok(
-  mainExecutor.executionPolicy,
-  "The main request executor must use an execution policy."
+  terminalExecutor,
+  "Documentary overflow must use a terminal request executor."
+);
+
+assert.notStrictEqual(
+  terminalExecutor,
+  mainExecutor,
+  "The terminal request executor must be distinct from the main executor."
+);
+
+assert.strictEqual(
+  terminalExecutor.overflowHandler,
+  null,
+  "The terminal request executor must not recursively configure documentary overflow."
 );
 
 assert.ok(
@@ -176,6 +246,9 @@ assert.strictEqual(
   "Main and terminal executors must share the same execution policy."
 );
 
+const documentaryExtractor =
+  overflowHandler.processor.extractor;
+
 assert.strictEqual(
   documentaryExtractor.requestExecutor,
   terminalExecutor,
@@ -183,13 +256,13 @@ assert.strictEqual(
 );
 
 assert.strictEqual(
-  documentaryExtractor.requestExecutor
+  documentaryExtractor
+    .requestExecutor
     .overflowHandler,
   null,
   "Documentary extraction must not recursively enter documentary overflow."
 );
 
 console.log(
-  "✅ Application request execution composition validée"
+  "ApplicationRequestExecutionComposition.test.js: PASS"
 );
-

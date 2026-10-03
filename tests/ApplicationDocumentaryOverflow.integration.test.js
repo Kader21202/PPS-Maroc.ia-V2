@@ -6,6 +6,12 @@ const {
   startApplication
 } = require("../src/app");
 
+const {
+  DocumentaryContextPlanner
+} = require(
+  "../src/services/DocumentaryContextPlanner"
+);
+
 
 class FakePipeline {
   prepare(context) {
@@ -129,7 +135,12 @@ class FakeProvider {
       llmProvider: provider,
 
       requestExecution: {
-        measurer
+        measurer,
+
+        documentaryPlanner:
+          new DocumentaryContextPlanner({
+            maxCharactersPerBatch: 100
+          })
       }
     });
 

@@ -141,36 +141,41 @@ function startApplication({
     });
 
   const documentaryPlanner =
-    new DocumentaryContextPlanner();
+    requestExecution.documentaryPlanner || null;
 
-  const documentaryExtractor =
-    new DocumentaryEvidenceExtractor({
-      provider: llmProvider,
-      requestExecutor:
-        terminalRequestExecutor
-    });
+  let documentaryOverflowHandler = null;
 
-  const documentaryProcessor =
-    new DocumentaryBatchProcessor({
-      extractor: documentaryExtractor
-    });
+  if (documentaryPlanner) {
+    const documentaryExtractor =
+      new DocumentaryEvidenceExtractor({
+        provider: llmProvider,
+        requestExecutor:
+          terminalRequestExecutor
+      });
 
-  const documentaryConsolidator =
-    new DocumentaryConsolidator();
+    const documentaryProcessor =
+      new DocumentaryBatchProcessor({
+        extractor: documentaryExtractor
+      });
 
-  const documentarySynthesisPromptBuilder =
-    new DocumentarySynthesisPromptBuilder();
+    const documentaryConsolidator =
+      new DocumentaryConsolidator();
 
-  const documentaryOverflowHandler =
-    new DocumentaryOverflowHandler({
-      planner: documentaryPlanner,
-      processor: documentaryProcessor,
-      consolidator: documentaryConsolidator,
-      synthesisPromptBuilder:
-        documentarySynthesisPromptBuilder,
-      requestExecutor:
-        terminalRequestExecutor
-    });
+    const documentarySynthesisPromptBuilder =
+      new DocumentarySynthesisPromptBuilder();
+
+    documentaryOverflowHandler =
+      new DocumentaryOverflowHandler({
+        planner: documentaryPlanner,
+        processor: documentaryProcessor,
+        consolidator:
+          documentaryConsolidator,
+        synthesisPromptBuilder:
+          documentarySynthesisPromptBuilder,
+        requestExecutor:
+          terminalRequestExecutor
+      });
+  }
 
   const requestExecutor =
     new PromptRequestExecutor({
@@ -230,4 +235,3 @@ function startApplication({
 module.exports = {
   startApplication
 };
-

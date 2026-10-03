@@ -137,3 +137,14 @@ assert.strictEqual(
 console.log(
   "DocumentaryContextPlanner direct preservation: PASS"
 );
+
+assert.throws(
+  () =>
+    new DocumentaryContextPlanner(),
+  /positive maxCharactersPerBatch/,
+  "DocumentaryContextPlanner must not invent an implicit batch budget."
+);
+
+console.log(
+  "DocumentaryContextPlanner explicit budget contract: PASS"
+);

@@ -2,7 +2,7 @@
 
 class DocumentaryContextPlanner {
   constructor({
-    maxCharactersPerBatch = 12000
+    maxCharactersPerBatch
   } = {}) {
     if (
       !Number.isFinite(maxCharactersPerBatch) ||
